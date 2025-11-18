@@ -54,5 +54,10 @@ def get_menu_prompt(store_id: str, menu_ver: int) -> str:
 def build_menu_prompt(snapshot: Dict[str, Any]) -> str:
     lines = []
     for m in snapshot.get("menus", []):
-        lines.append(f"- {m['id']} {m['name']} ({m['price']}원)")
+        tags = ", ".join(m.get("tags", []))
+        lines.append(
+            f"- {m['id']} {m['name']} ({m['price']}원)"
+            + (f" / 특징: {tags}" if tags else "")
+        )
     return "\n".join(lines)
+
