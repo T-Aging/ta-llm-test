@@ -1,4 +1,5 @@
 import os, sys
+import time
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
@@ -11,6 +12,40 @@ from test_llm import (
 )
 from load_prompt import load_prompt, render_prompt
 from cache.session import l1_snapshot_load, get_menu_prompt
+from cache.call_llm import agent_answer
+
+STORE_ID = "001"
+MENU_VER = 1
+USER_TEXT = "좀 달달하고 부드러운 메뉴 추천해줘. 커피는 아니었으면 좋겠어."
+
+def redis_cache_test():
+    print("\n=== Redis 캐시 hit/miss 테스트 ===\n")
+    print(f"- store_id: {STORE_ID}, menu_ver: {MENU_VER}")
+    print(f"- user_text: {USER_TEXT}\n")
+
+    # 1차 호출: 반드시 MISS (또는 아직 캐시가 없다면)
+    start = time.time()
+    resp1 = agent_answer(STORE_ID, MENU_VER, USER_TEXT)
+    t1 = time.time() - start
+
+    print("[1차 호출]")
+    print(f"  latency: {t1:.4f} sec")
+    print(f"  cache_hit: {resp1.get('cache_hit')}")
+    print(f"  reply: {resp1.get('reply')}\n")
+
+    # 2차 호출: 같은 질문 → fuzzy/exact 매칭으로 HIT 기대
+    start = time.time()
+    resp2 = agent_answer(STORE_ID, MENU_VER, USER_TEXT)
+    t2 = time.time() - start
+
+    print("[2차 호출]")
+    print(f"  latency: {t2:.4f} sec")
+    print(f"  cache_hit: {resp2.get('cache_hit')}")
+    print(f"  reply: {resp2.get('reply')}\n")
+
+    print("=== Redis 캐시 테스트 종료 ===\n")
+    return resp1, resp2
+    
 
 l1_snapshot_load("001", 1)
 menu_prompt = get_menu_prompt("001", 1)
@@ -78,3 +113,4 @@ def llm_comparison():
 
 if __name__ == "__main__":
     llm_comparison()
+    redis_cache_test()
